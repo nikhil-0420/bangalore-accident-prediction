@@ -1,0 +1,30 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+.env
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Models (large files)
+models/*.pkl
+
+# Node / Frontend
+frontend/node_modules/
+frontend/.env.local
+frontend/dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Generated outputs
+*.png
+*.html
