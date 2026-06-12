@@ -6,7 +6,7 @@ import {
   BarChart, Bar
 } from 'recharts'
 
-const API    = 'http://localhost:8000'
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const COLORS = ['#f97316','#06b6d4','#22c55e','#8b5cf6','#ef4444','#f59e0b','#ec4899','#64748b']
 const YEARS  = [2018,2019,2020,2021,2022,2023,2024,2025]
 
