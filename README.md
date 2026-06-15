@@ -66,34 +66,18 @@ The project goes beyond a static notebook — it's deployed as a **live full-sta
 
 ## 📐 Architecture
 
-```
-Open City India Dataset (2018–2025, 52 stations)
-            │
-            ▼
-  Data Cleaning & Feature Engineering
-  (Prev_Year, Trend, 2-Year Rolling Avg)
-            │
-            ▼
-  ┌─────────────────────┬──────────────────────┐
-  │   Regression Task    │  Classification Task  │
-  │  (Accident Count)    │    (Risk Level)        │
-  └─────────────────────┴──────────────────────┘
-            │
-            ▼
-  Random Forest · XGBoost · Decision Tree
-  + SMOTE + RandomizedSearchCV
-            │
-            ▼
-  SHAP Explainability + Correlation Validation
-            │
-            ▼
-  ┌─────────────────────┐      ┌──────────────────────┐
-  │  FastAPI Backend     │ ───▶ │  React Frontend       │
-  │  (Render)            │      │  (Vercel)             │
-  └─────────────────────┘      └──────────────────────┘
-```
-
----
+\`\`\`mermaid
+flowchart TD
+    A[Open City India Dataset<br/>2018-2025, 52 stations] --> B[Data Cleaning &amp;<br/>Feature Engineering]
+    B --> C{Dual ML Tasks}
+    C --> D[Regression<br/>Accident Count]
+    C --> E[Classification<br/>Risk Level]
+    D --> F[Random Forest · XGBoost · Decision Tree<br/>+ SMOTE + RandomizedSearchCV]
+    E --> F
+    F --> G[SHAP Explainability +<br/>Correlation Validation]
+    G --> H[FastAPI Backend<br/>Render]
+    H --> I[React Frontend<br/>Vercel]
+\`\`\`
 
 ## 📊 Model Performance
 
