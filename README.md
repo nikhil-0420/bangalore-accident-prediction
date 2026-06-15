@@ -66,18 +66,20 @@ The project goes beyond a static notebook — it's deployed as a **live full-sta
 
 ## 📐 Architecture
 
-\`\`\`mermaid
+```mermaid
 flowchart TD
-    A[Open City India Dataset<br/>2018-2025, 52 stations] --> B[Data Cleaning &amp;<br/>Feature Engineering]
-    B --> C{Dual ML Tasks}
-    C --> D[Regression<br/>Accident Count]
-    C --> E[Classification<br/>Risk Level]
-    D --> F[Random Forest · XGBoost · Decision Tree<br/>+ SMOTE + RandomizedSearchCV]
+    A["Open City India Dataset<br/>2018-2025, 52 stations"] --> B["Data Cleaning and<br/>Feature Engineering"]
+    B --> C{"Dual ML Tasks"}
+    C --> D["Regression<br/>Accident Count"]
+    C --> E["Classification<br/>Risk Level"]
+    D --> F["Random Forest, XGBoost, Decision Tree<br/>plus SMOTE and RandomizedSearchCV"]
     E --> F
-    F --> G[SHAP Explainability +<br/>Correlation Validation]
-    G --> H[FastAPI Backend<br/>Render]
-    H --> I[React Frontend<br/>Vercel]
-\`\`\`
+    F --> G["SHAP Explainability and<br/>Correlation Validation"]
+    G --> H["FastAPI Backend<br/>Render"]
+    H --> I["React Frontend<br/>Vercel"]
+```
+
+---
 
 ## 📊 Model Performance
 
