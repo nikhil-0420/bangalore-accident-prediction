@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import WakingUp from './components/WakingUp'
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-
 import CityGrid from './components/CityGrid'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
@@ -11,19 +9,31 @@ import StatsPanel from './components/StatsPanel'
 import TrendsPanel from './components/TrendsPanel'
 import HotspotsPanel from './components/HotspotsPanel'
 
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
 export default function App() {
   const [activeTab, setActiveTab] = useState(null)
+  const [backendReady, setBackendReady] = useState(false)
+
+  useEffect(() => {
+    const checkBackend = () => {
+      axios.get(`${API}/`)
+        .then(() => setBackendReady(true))
+        .catch(() => setTimeout(checkBackend, 2000))
+    }
+    checkBackend()
+  }, [])
 
   return (
-  <div style={{ minHeight: '100vh', background: '#0e0e0e' }}>
-    <CityGrid />
-    <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div style={{ minHeight: '100vh', background: '#0e0e0e' }}>
+      <CityGrid />
+      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-    {!backendReady && <WakingUp />}
+      {!backendReady && <WakingUp />}
 
-    {backendReady && !activeTab && (
-      <Hero setActiveTab={setActiveTab} />
-    )}
+      {backendReady && !activeTab && (
+        <Hero setActiveTab={setActiveTab} />
+      )}
 
       {backendReady && activeTab && (
         <div
@@ -60,14 +70,4 @@ export default function App() {
       )}
     </div>
   )
-  const [backendReady, setBackendReady] = useState(false)
-
-useEffect(() => {
-  const checkBackend = () => {
-    axios.get(`${API}/`)
-      .then(() => setBackendReady(true))
-      .catch(() => setTimeout(checkBackend, 2000))
-  }
-  checkBackend()
-}, [])
 }
