@@ -11,7 +11,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-[**Live App**](https://bangalore-accident-prediction-ozzfafkp3.vercel.app/) · [**API Docs**](https://bangalore-accident-prediction-api.onrender.com/docs) · [**Report Bug**](https://github.com/nikhil-0420/bangalore-accident-prediction/issues)
+[**Live App**](https://bangalore-accident-prediction.vercel.app/) · [**API Docs**](https://bangalore-accident-prediction-api.onrender.com/docs) · [**Report Bug**](https://github.com/nikhil-0420/bangalore-accident-prediction/issues)
 
 </div>
 
