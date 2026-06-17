@@ -15,8 +15,6 @@
 
 </div>
 
----
-
 ## 📌 Overview
 
 Road traffic accidents are a major public safety challenge in Bangalore, with crash data spanning **52 police station jurisdictions** from **2018 to 2025**. This project builds a complete, end-to-end machine learning system that:
@@ -30,7 +28,19 @@ The project goes beyond a static notebook — it's deployed as a **live full-sta
 
 > ⚠️ **Note:** The backend runs on Render's free tier, which sleeps after inactivity. The first request may take 20–30 seconds to wake up.
 
----
+***
+
+## 🖥️ Live Dashboard
+
+> **👉 [Try it live: bangalore-accident-prediction.vercel.app](https://bangalore-accident-prediction.vercel.app/)**
+
+The dashboard includes:
+- **Predict** — Enter any station + year to get risk level, confidence, and SHAP-explained prediction
+- **Model Stats** — Side-by-side model comparison with radar charts
+- **Trends** — 8-year zone-wise trends with COVID-19 impact analysis
+- **Hotspots** — Interactive Leaflet map with risk-colored station markers
+
+***
 
 ## ✨ Features
 
@@ -44,7 +54,7 @@ The project goes beyond a static notebook — it's deployed as a **live full-sta
 | ⚖️ **Class Balancing** | SMOTE applied to correct a 1.61 class imbalance ratio |
 | 🎛️ **Hyperparameter Tuning** | RandomizedSearchCV with 5-fold cross-validation |
 
----
+***
 
 ## 🏗️ Tech Stack
 
@@ -62,24 +72,32 @@ The project goes beyond a static notebook — it's deployed as a **live full-sta
 - Tailwind CSS · Recharts · React Leaflet · Axios
 - Deployed on Vercel
 
----
+***
 
 ## 📐 Architecture
 
 ```mermaid
 flowchart TD
-    A["Open City India Dataset<br/>2018-2025, 52 stations"] --> B["Data Cleaning and<br/>Feature Engineering"]
+    A["Open City India Dataset  
+    2018-2025, 52 stations"] --> B["Data Cleaning and  
+    Feature Engineering"]
     B --> C{"Dual ML Tasks"}
-    C --> D["Regression<br/>Accident Count"]
-    C --> E["Classification<br/>Risk Level"]
-    D --> F["Random Forest, XGBoost, Decision Tree<br/>plus SMOTE and RandomizedSearchCV"]
+    C --> D["Regression  
+    Accident Count"]
+    C --> E["Classification  
+    Risk Level"]
+    D --> F["Random Forest, XGBoost, Decision Tree  
+    plus SMOTE and RandomizedSearchCV"]
     E --> F
-    F --> G["SHAP Explainability and<br/>Correlation Validation"]
-    G --> H["FastAPI Backend<br/>Render"]
-    H --> I["React Frontend<br/>Vercel"]
+    F --> G["SHAP Explainability and  
+    Correlation Validation"]
+    G --> H["FastAPI Backend  
+    Render"]
+    H --> I["React Frontend  
+    Vercel"]
 ```
 
----
+***
 
 ## 📊 Model Performance
 
@@ -109,7 +127,7 @@ flowchart TD
 
 > Both explainability methods independently agree: **a station's own recent accident history** is by far the strongest predictor of future risk — far more than its location, zone, or the calendar year.
 
----
+***
 
 ## 🚀 Getting Started
 
@@ -118,71 +136,62 @@ flowchart TD
 - Node.js 18+
 
 ### 1. Clone the repository
-
 ```bash
 git clone https://github.com/nikhil-0420/bangalore-accident-prediction.git
 cd bangalore-accident-prediction
 ```
 
 ### 2. Backend setup
-
 ```bash
 python -m venv venv
-venv\Scripts\activate          # Windows
-# source venv/bin/activate     # macOS/Linux
-
+venv\Scripts\activate   # Windows
+# source venv/bin/activate  # macOS/Linux
 pip install -r requirements.txt
-
 cd backend
 uvicorn main:app --reload
 ```
-
 Backend runs at `http://localhost:8000` · Docs at `http://localhost:8000/docs`
 
 ### 3. Frontend setup
-
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-
 Frontend runs at `http://localhost:5173`
 
 ### 4. Environment variables
-
 Create `frontend/.env.local`:
-
 ```
 VITE_API_URL=http://localhost:8000
 ```
 
----
+***
 
 ## 📂 Project Structure
 
 ```
 bangalore-accident-prediction/
 ├── backend/
-│   └── main.py              # FastAPI app — prediction, stats, trends, hotspot endpoints
+│   └── main.py                    # FastAPI app — prediction, stats, trends, hotspot endpoints
 ├── data/
 │   └── final_perfect_dataset.csv
 ├── models/
-│   ├── clf_model.pkl        # Tuned Random Forest classifier
-│   ├── reg_model.pkl        # Tuned Random Forest regressor
+│   ├── clf_model.pkl              # Tuned Random Forest classifier
+│   ├── reg_model.pkl              # Tuned Random Forest regressor
 │   ├── le_station.pkl
 │   ├── le_zone.pkl
 │   └── le_risk.pkl
 ├── notebooks/
-│   └── FDSProject_Clean.ipynb   # Full ML pipeline: EDA → modeling → SHAP → SMOTE → tuning
+│   └── FDSProject_Clean.ipynb     # Full ML pipeline: EDA → modeling → SHAP → SMOTE → tuning
 ├── frontend/
 │   └── src/
-│       ├── components/      # Hero, Predict, Stats, Trends, Hotspots panels
+│       ├── components/            # Hero, Predict, Stats, Trends, Hotspots panels
 │       └── hooks/
 └── requirements.txt
 ```
 
----
+***
 
 ## 🔬 Methodology Highlights
 
@@ -194,7 +203,7 @@ bangalore-accident-prediction/
 6. **Explainability** — SHAP TreeExplainer for both regression and classification, cross-validated with Pearson correlation
 7. **Geospatial Analysis** — Risk-level mapping, hotspot ranking, and COVID-19 impact analysis (2020–2021 dip, 2023–2024 recovery)
 
----
+***
 
 ## 🎯 Key Findings
 
@@ -202,7 +211,7 @@ bangalore-accident-prediction/
 - A clear **COVID-19 dip** is visible across all zones in 2020–2021, with most zones exceeding pre-pandemic levels by 2023–2024
 - After SMOTE correction, classification accuracy is a more honest **79.8%** (vs. an inflated 85.7% on imbalanced data)
 
----
+***
 
 ## 🔮 Future Work
 
@@ -212,25 +221,22 @@ bangalore-accident-prediction/
 - Accident severity prediction (not just frequency)
 - Extend the pipeline to other Indian metropolitan cities
 
----
+***
 
 ## 👤 Author
 
 **Guddanti Nikhil Srinivas**
-B.Tech AI &amp; Data Science · Alliance University, Bengaluru
+B.Tech AI & Data Science · Alliance University, Bengaluru
+📧 nikhil.guddanti@gmail.com
 
 [GitHub](https://github.com/nikhil-0420) · [LinkedIn](https://linkedin.com/in/nikhil-srinivas-55a130337)
 
----
+***
 
 ## 📄 License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
----
-
-<div align="center">
+***
 
 **⭐ If you found this project interesting, consider giving it a star!**
-
-</div>
