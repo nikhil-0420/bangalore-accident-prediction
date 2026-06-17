@@ -4,7 +4,7 @@
 
 ### Predicting Road Accident Hotspots Across Bangalore Using Machine Learning &amp; Explainable AI
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-black?style=for-the-badge&logo=vercel)](https://bangalore-accident-prediction-ozzfafkp3.vercel.app/)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-black?style=for-the-badge&logo=vercel)](https://bangalore-accident-prediction.vercel.app/)
 [![API](https://img.shields.io/badge/API-Render-46E3B7?style=for-the-badge&logo=render)](https://bangalore-accident-prediction-api.onrender.com/)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
