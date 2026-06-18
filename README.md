@@ -15,7 +15,6 @@
 
 </div>
 
----
 ***
 
 ## 📌 Overview
@@ -37,11 +36,12 @@ Unlike a static notebook project, this system is deployed as a working applicati
 ## 🖥️ Dashboard Preview
 
 ### Landing View
+![Dashboard Hero](assets/hero-preview.png)
 
 
 
 ### Hotspot Analytics View
-
+![Hotspots Map](assets/hotspots-preview.png)
 
 
 The dashboard includes:
