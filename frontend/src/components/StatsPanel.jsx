@@ -12,13 +12,13 @@ const tt = {
 }
 
 const classData = [
-  { model: 'Random Forest', Accuracy: 0.7857, Precision: 0.7901, Recall: 0.7857, F1: 0.7871 },
+  { model: 'Random Forest', Accuracy: 0.7976, Precision: 0.78, Recall: 0.77, F1: 0.799 },
   { model: 'XGBoost',       Accuracy: 0.7857, Precision: 0.7953, Recall: 0.7857, F1: 0.7883 },
   { model: 'Decision Tree', Accuracy: 0.7738, Precision: 0.7812, Recall: 0.7738, F1: 0.7758 },
 ]
 
 const regData = [
-  { model: 'Random Forest', R2: 0.8142, RMSE: 25.48, MAE: 9.86  },
+  { model: 'Random Forest', R2: 0.859 , RMSE: 25.48, MAE: 9.86  },
   { model: 'XGBoost',       R2: 0.8259, RMSE: 24.66, MAE: 10.22 },
   { model: 'Decision Tree', R2: 0.7554, RMSE: 29.23, MAE: 13.30 },
 ]
@@ -106,7 +106,7 @@ export default function StatsPanel() {
       {/* ── Competitor Cards ────────────────── */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:'16px', marginTop:'16px' }}>
   {[
-    { name:'Random Forest', color:'#f97316', acc:0.7857, f1:0.7871, r2:0.8142, winner:false, tuned:true  },
+    { name:'Random Forest', color:'#f97316', acc:0.7976, f1:0.799, r2:0.859, winner:false, tuned:true  },
     { name:'XGBoost',       color:'#06b6d4', acc:0.7857, f1:0.7883, r2:0.8259, winner:true,  tuned:false },
     { name:'Decision Tree', color:'#8b5cf6', acc:0.7738, f1:0.7758, r2:0.7554, winner:false, tuned:false },
   ].map((m, i) => (
