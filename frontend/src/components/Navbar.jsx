@@ -28,7 +28,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
             background: '#f97316', flexShrink: 0
           }} />
           <span style={{ color:'white', fontWeight:700, fontSize:'14px' }}>
-            Bangalore Accident Predictor
+            Bangalore Accident Risk Predictor
           </span>
           <span style={{
             fontSize:'10px', color:'#f97316',
