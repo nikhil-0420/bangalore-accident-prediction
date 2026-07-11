@@ -27,22 +27,60 @@ le_station = joblib.load(os.path.join(MODELS, "le_station.pkl"))
 le_zone    = joblib.load(os.path.join(MODELS, "le_zone.pkl"))
 le_risk    = joblib.load(os.path.join(MODELS, "le_risk.pkl"))
 
-df      = pd.read_csv(os.path.join(DATA, "final_perfect_dataset.csv"))
+YEAR_COLS = ["Y2018","Y2019","Y2020","Y2021","Y2022","Y2023","Y2024","Y2025"]
+
+# ── FIX: reconstruct the 82 genuinely-missing station-years as NaN ─────
+# instead of trusting the source CSV's zero-fill. Without this, stations
+# with jurisdictional gaps (e.g. JP Nagar, Kodigehalli, VV Puram, B.Pura,
+# Chickpet, etc.) get "no data recorded" silently treated as "0 accidents
+# happened", which drags their averages down and can flip their risk
+# level to Low Risk incorrectly. See notebooks/accident_risk_ml_pipeline.ipynb
+# for the full writeup — this mirrors load_and_engineer_features() there.
+df = pd.read_csv(os.path.join(DATA, "final_perfect_dataset.csv"))
+df[YEAR_COLS] = df[YEAR_COLS].replace(0, np.nan)
+
 df_long = df.melt(
     id_vars   =["Station","Zone","Latitude","Longitude"],
-    value_vars =["Y2018","Y2019","Y2020","Y2021","Y2022","Y2023","Y2024","Y2025"],
+    value_vars=YEAR_COLS,
     var_name  ="Year", value_name="Total"
 )
 df_long["Year"] = df_long["Year"].str.replace("Y","").astype(int)
 df_long = df_long.sort_values(["Station","Year"])
-df_long["Prev_Year"]   = df_long.groupby("Station")["Total"].shift(1).fillna(0)
+df_long = df_long.dropna(subset=["Total"]).reset_index(drop=True)  # drop the 82 fake rows
+
+df_long["Prev_Year"]   = df_long.groupby("Station")["Total"].shift(1)
 df_long["Trend"]       = df_long["Total"] - df_long["Prev_Year"]
-df_long["Rolling_Avg"] = df_long.groupby("Station")["Total"].rolling(2).mean().reset_index(0,drop=True).fillna(0)
+df_long["Rolling_Avg"] = df_long.groupby("Station")["Total"].rolling(2).mean().reset_index(0, drop=True)
+# Only fills the legitimate first-observation NaNs (e.g. a station's
+# earliest valid year has no Prev_Year) — Total itself has no NaNs left.
+df_long = df_long.fillna(0)
+
+
+def _station_avg_and_risk(df_long_local):
+    """Per-station mean/sum computed on the NaN-corrected long data —
+    mean()/sum() skip NaN automatically pre-dropna, but we've already
+    dropped the fake rows above, so this is just the honest average
+    over each station's REAL years."""
+    summary = df_long_local.groupby("Station").agg(
+        Zone=("Zone", "first"),
+        Total_Avg=("Total", "mean"),
+        Total_Sum=("Total", "sum"),
+    ).reset_index()
+
+    def risk(avg):
+        if avg >= 70:   return "High Risk"
+        elif avg >= 30: return "Medium Risk"
+        else:           return "Low Risk"
+
+    summary["Risk"] = summary["Total_Avg"].apply(risk)
+    return summary
+
 
 # ── Request Schema ────────────────────────────────────────────
 class PredictRequest(BaseModel):
     station: str
     year: int
+
 
 # ── Routes ────────────────────────────────────────────────────
 
@@ -50,9 +88,11 @@ class PredictRequest(BaseModel):
 def root():
     return {"message": "Bangalore Accident Prediction API is running!"}
 
+
 @app.get("/stations")
 def get_stations():
     return {"stations": sorted(df["Station"].unique().tolist())}
+
 
 @app.post("/predict")
 def predict(req: PredictRequest):
@@ -67,6 +107,9 @@ def predict(req: PredictRequest):
     zone_enc    = le_zone.transform([zone_name])[0]
 
     station_data = df_long[df_long["Station"] == station].sort_values("Year")
+    if station_data.empty:
+        return {"error": f"No valid historical data for '{station}'"}
+
     last_row     = station_data.iloc[-1]
     prev_year    = float(last_row["Total"])
     trend        = float(last_row["Total"] - station_data.iloc[-2]["Total"]) \
@@ -104,50 +147,60 @@ def predict(req: PredictRequest):
         "probabilities":     probabilities
     }
 
+
 @app.get("/hotspots")
 def get_hotspots():
-    year_cols = ["Y2018","Y2019","Y2020","Y2021","Y2022","Y2023","Y2024","Y2025"]
-    df["Total_Sum"] = df[year_cols].sum(axis=1)
-    top10 = df.nlargest(10, "Total_Sum")[
-        ["Station","Zone","Latitude","Longitude","Total_Sum"]
+    summary = _station_avg_and_risk(df_long)
+    lat_lon = df[["Station", "Latitude", "Longitude"]].drop_duplicates()
+    summary = summary.merge(lat_lon, on="Station", how="left")
+    top10 = summary.nlargest(10, "Total_Sum")[
+        ["Station", "Zone", "Latitude", "Longitude", "Total_Sum"]
     ].dropna()
     return {"hotspots": top10.to_dict(orient="records")}
 
+
 @app.get("/stations-risk")
 def get_stations_risk():
-    year_cols = ["Y2018","Y2019","Y2020","Y2021","Y2022","Y2023","Y2024","Y2025"]
-    df["Total_Avg"] = df[year_cols].mean(axis=1)
-
-    def risk(avg):
-        if avg >= 70:   return "High Risk"
-        elif avg >= 30: return "Medium Risk"
-        else:           return "Low Risk"
-
-    df["Risk"] = df["Total_Avg"].apply(risk)
-    result = df[["Station","Zone","Latitude","Longitude","Total_Avg","Risk"]].dropna()
+    summary = _station_avg_and_risk(df_long)
+    lat_lon = df[["Station", "Latitude", "Longitude"]].drop_duplicates()
+    summary = summary.merge(lat_lon, on="Station", how="left")
+    result = summary[["Station", "Zone", "Latitude", "Longitude", "Total_Avg", "Risk"]].dropna()
     return {"stations": result.to_dict(orient="records")}
+
 
 @app.get("/trends")
 def get_trends():
-    year_cols = ["Y2018","Y2019","Y2020","Y2021","Y2022","Y2023","Y2024","Y2025"]
-    zone_trend = df.groupby("Zone")[year_cols].sum().reset_index()
+    # Zone-wise yearly totals — sum() skips NaN automatically, so this
+    # was already correct even before the fix, but now consistent with
+    # everything else using the same NaN-aware df.
+    zone_trend = df_long.pivot_table(
+        index="Zone", columns="Year", values="Total", aggfunc="sum"
+    ).reset_index()
     return {"trends": zone_trend.to_dict(orient="records")}
+
 
 @app.get("/station/{station_name}")
 def get_station_history(station_name: str):
-    year_cols = ["Y2018","Y2019","Y2020","Y2021","Y2022","Y2023","Y2024","Y2025"]
-    station_data = df[df["Station"] == station_name]
+    station_data = df_long[df_long["Station"] == station_name].sort_values("Year")
     if station_data.empty:
         return {"error": "Station not found"}
-    row = station_data.iloc[0]
-    history = [{"year": int(col.replace("Y","")), "accidents": int(row[col])} for col in year_cols]
-    total = sum(int(row[col]) for col in year_cols)
-    avg = round(total / len(year_cols), 1)
-    risk = "High Risk" if avg >= 70 else "Medium Risk" if avg >= 30 else "Low Risk"
+
+    history = [
+        {"year": int(r["Year"]), "accidents": int(r["Total"])}
+        for _, r in station_data.iterrows()
+    ]
+    total = int(station_data["Total"].sum())
+    avg   = round(station_data["Total"].mean(), 1)
+    risk  = "High Risk" if avg >= 70 else "Medium Risk" if avg >= 30 else "Low Risk"
+
     return {
         "station": station_name,
-        "zone": row["Zone"],
-        "history": history,
+        "zone": station_data["Zone"].iloc[0],
+        "history": history,          # NOTE: now only includes years with real data —
+                                      # e.g. JP Nagar will return just {2025: 43} instead
+                                      # of 8 years with 7 fake zeros. Frontend charts
+                                      # that assume exactly 8 points per station need
+                                      # to handle a variable-length series.
         "total": total,
         "average": avg,
         "risk": risk
