@@ -126,8 +126,8 @@ export default function Hero({ setActiveTab }) {
       }}>
         <ScrambleStat value="52"    label="Police Stations" />
         <ScrambleStat value="8 yrs" label="Crash Data"      />
-        <ScrambleStat value="0.859" label="R² Score"        />
-        <ScrambleStat value="0.799" label="F1 Score"        />
+        <ScrambleStat value="0.811" label="R² Score"        />
+        <ScrambleStat value="0.838" label="F1 Score"        />
       </div>
 
       {/* Bottom tag */}

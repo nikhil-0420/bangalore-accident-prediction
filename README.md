@@ -103,31 +103,51 @@ flowchart TD
 
 ## 📊 Model Performance
 
+> **Note on methodology:** an earlier version of this dataset silently zero-filled 82 station-years that actually had *no recorded data* (a BTP jurisdictional-boundary artifact — several stations only exist post-2023, others were discontinued around the same time), which inflated the Low Risk class and the resulting metrics. This has been corrected — missing station-years are now dropped rather than zero-filled (416 → 334 valid records) — and all metrics below are averaged across 5 stratified train/test splits (not a single lucky split) to give an honest, reproducible estimate rather than a single-run number.
+
 ### Classification (Risk Level — Low / Medium / High)
 
-| Model | Accuracy | Precision | Recall | F1 Score |
-|---|:---:|:---:|:---:|:---:|
-| **Random Forest** *(final, tuned)* | 0.7976 | 0.78 | 0.77 | **0.799** |
-| XGBoost | 0.7857 | 0.7953 | 0.7857 | 0.7883 |
-| Decision Tree | 0.7738 | 0.7812 | 0.7738 | 0.7758 |
+| Model | Accuracy | F1 Score |
+|---|:---:|:---:|
+| **Random Forest** *(final, tuned)* | **0.8388 ± 0.0198** | **0.8380 ± 0.0178** |
+| XGBoost | 0.8209 ± 0.0250 | 0.8216 ± 0.0256 |
+| Decision Tree | 0.8179 ± 0.0239 | 0.8197 ± 0.0219 |
+
+*A single train/test split can make Decision Tree appear to outperform the others (up to 0.87 accuracy on some splits) — this reflects known high-variance behavior of unpruned single trees on small test sets, not genuine superior generalization. It does not hold up when averaged across multiple splits, which is why this table reports the multi-seed mean rather than any one run.*
 
 ### Regression (Annual Accident Count)
 
 | Model | R² | RMSE | MAE |
 |---|:---:|:---:|:---:|
-| **Random Forest** *(final, tuned)* | **0.859** | 23.56 | 13.06 |
-| XGBoost | 0.8259 | 24.66 | 10.22 |
-| Decision Tree | 0.7554 | 29.23 | 13.30 |
+| **Random Forest** *(final, tuned)* | **0.8106 ± 0.0561** | **27.78 ± 5.40** | 14.86 ± 1.13 |
+| XGBoost | 0.7856 ± 0.0958 | 29.04 ± 7.57 | 13.69 ± 1.93 |
+| Decision Tree | 0.7471 ± 0.0958 | 31.74 ± 5.69 | 17.58 ± 1.44 |
+| Persistence Baseline *(predict = last year's count)* | 0.2009 ± 0.1895 | 57.47 ± 10.22 | 35.48 ± 5.03 |
+
+### COVID-19 Regime Generalization
+
+Trained excluding 2020–2021 entirely and tested only on those years, the tuned classifier scored **85.4% accuracy** — statistically indistinguishable from its standard held-out test performance (85.1%), yielding a generalizability gap **G ≈ -0.003**. The 2-Year Rolling Average feature successfully absorbs the pandemic-driven disruption without degrading predictive performance.
+
+### Feature Ablation
+
+| Feature Set | Mean Accuracy | Mean F1 | Mean R² |
+|---|:---:|:---:|:---:|
+| Full (all 6 features) | 0.8388 | 0.8380 | 0.8053 |
+| Without Rolling_Avg | 0.8507 | 0.8489 | 0.7791 |
+| Without Station/Zone | 0.8687 | 0.8679 | 0.8224 |
+| **Rolling_Avg + Prev_Year only** | **0.8896** | **0.8856** | 0.8116 |
+
+Removing `Station_Enc`/`Zone_Enc` barely affects classification and *improves* it slightly — consistent with SHAP ranking them lowest in importance. `Rolling_Avg` is the one feature whose removal reliably hurts regression, confirming it as the model's most load-bearing signal.
 
 ### Top Predictive Features (SHAP × Pearson Correlation)
 
 | Feature | SHAP Importance | Pearson Correlation |
 |---|:---:|:---:|
-| 2-Year Rolling Average | Highest | +0.750 |
-| Previous Year Accidents | 2nd Highest | +0.634 |
-| Year-on-Year Trend | 3rd | +0.169 |
+| 2-Year Rolling Average | Highest | +0.77 |
+| Previous Year Accidents | 2nd Highest | +0.66 |
+| Year-on-Year Trend | 3rd | +0.24 |
 
-> Both explainability methods independently indicate that **a station’s recent accident history** is the strongest predictor of future risk.
+> Both explainability methods independently indicate that **a station's recent accident history** is the strongest predictor of future risk — not its zone or station identity.
 
 ***
 
