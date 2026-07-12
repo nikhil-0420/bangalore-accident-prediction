@@ -176,6 +176,13 @@ def get_trends():
     zone_trend = df_long.pivot_table(
         index="Zone", columns="Year", values="Total", aggfunc="sum"
     ).reset_index()
+    # FIX: pivot_table produces bare integer year columns (2018, 2019, ...),
+    # but the frontend (TrendsPanel.jsx) looks up keys as "Y2018", "Y2019"
+    # to match the raw CSV's naming convention. Without this rename, every
+    # lookup silently falls back to 0 and the whole Trends page renders as
+    # flat zero-lines instead of erroring — much harder to notice than a
+    # crash. Rename here so the two sides actually agree.
+    zone_trend.columns = ["Zone"] + [f"Y{c}" for c in zone_trend.columns if c != "Zone"]
     return {"trends": zone_trend.to_dict(orient="records")}
 
 

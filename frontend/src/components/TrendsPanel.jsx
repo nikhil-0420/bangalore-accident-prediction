@@ -33,6 +33,8 @@ export default function TrendsPanel() {
   const [zoneB,     setZoneB]     = useState('')
   const [yoyData,   setYoyData]   = useState([])
   const [loading,   setLoading]   = useState(true)
+  const [error,     setError]     = useState(null)
+  const [wakeSeconds, setWakeSeconds] = useState(0)
 
   const inp = {
     background: 'rgba(255,255,255,0.05)',
@@ -41,49 +43,96 @@ export default function TrendsPanel() {
     padding: '8px 12px', fontSize: '13px', outline: 'none',
   }
 
-  useEffect(() => {
-    axios.get(`${API}/trends`).then(r => {
-      const raw = r.data.trends
-      const zoneNames = raw.map(z => z.Zone)
-      setZones(zoneNames)
-      setZoneA(zoneNames[0] || '')
-      setZoneB(zoneNames[1] || '')
+  const loadTrends = () => {
+    let cancelled = false
+    let attempt = 0
+    setLoading(true)
+    setError(null)
+    setWakeSeconds(0)
 
-      const formatted = YEARS.map(yr => {
-        const pt = { year: yr }
-        raw.forEach(z => { pt[z.Zone] = z[`Y${yr}`] || 0 })
-        return pt
-      })
-      setData(formatted)
+    const tick = setInterval(() => {
+      if (!cancelled) setWakeSeconds(s => s + 1)
+    }, 1000)
 
-      // YoY change calculation
-      const yoy = zoneNames.map(zone => {
-        const vals = YEARS.map(yr => {
-          const row = raw.find(z => z.Zone === zone)
-          return row ? (row[`Y${yr}`] || 0) : 0
+    const tryFetch = () => {
+      attempt += 1
+      axios.get(`${API}/trends`, { timeout: 12000 }).then(r => {
+        if (cancelled) return
+        const raw = r.data.trends
+        const zoneNames = raw.map(z => z.Zone)
+        setZones(zoneNames)
+        setZoneA(zoneNames[0] || '')
+        setZoneB(zoneNames[1] || '')
+
+        const formatted = YEARS.map(yr => {
+          const pt = { year: yr }
+          raw.forEach(z => { pt[z.Zone] = z[`Y${yr}`] || 0 })
+          return pt
         })
-        const change = vals[vals.length-1] - vals[vals.length-2]
-        const pct    = vals[vals.length-2] > 0
-          ? ((change / vals[vals.length-2]) * 100).toFixed(1)
-          : '0.0'
-        return { zone, latest: vals[vals.length-1], change, pct }
+        setData(formatted)
+
+        const yoy = zoneNames.map(zone => {
+          const vals = YEARS.map(yr => {
+            const row = raw.find(z => z.Zone === zone)
+            return row ? (row[`Y${yr}`] || 0) : 0
+          })
+          const change = vals[vals.length-1] - vals[vals.length-2]
+          const pct    = vals[vals.length-2] > 0
+            ? ((change / vals[vals.length-2]) * 100).toFixed(1)
+            : '0.0'
+          return { zone, latest: vals[vals.length-1], change, pct }
+        })
+        setYoyData(yoy)
+        setLoading(false)
+        clearInterval(tick)
+      }).catch(() => {
+        if (cancelled) return
+        // Render free-tier cold-start can take 20-30s — retry before
+        // surfacing a hard error, same pattern as PredictionPanel.
+        if (attempt < 6) {
+          setTimeout(tryFetch, 5000)
+        } else {
+          setLoading(false)
+          clearInterval(tick)
+          setError('Could not load trend data. The backend may still be waking up — try again.')
+        }
       })
-      setYoyData(yoy)
-      setLoading(false)
-    }).catch(() => setLoading(false))
-  }, [])
+    }
+    tryFetch()
+    return () => { cancelled = true; clearInterval(tick) }
+  }
+
+  useEffect(() => { loadTrends() }, [])
 
   if (loading) return (
     <div style={{ display:'flex', flexDirection:'column',
-              alignItems:'center', gap:'16px' }}>
-  <div style={{
-    width:'40px', height:'40px', borderRadius:'50%',
-    border:'3px solid rgba(249,115,22,0.2)',
-    borderTop:'3px solid #f97316',
-    animation:'border-rotate 0.8s linear infinite',
-  }}/>
-  <p style={{ color:'#555', fontSize:'13px' }}>Loading...</p>
-</div>
+              alignItems:'center', gap:'16px', padding:'60px 0' }}>
+      <div style={{
+        width:'40px', height:'40px', borderRadius:'50%',
+        border:'3px solid rgba(249,115,22,0.2)',
+        borderTop:'3px solid #f97316',
+        animation:'border-rotate 0.8s linear infinite',
+      }}/>
+      <p style={{ color:'#555', fontSize:'13px' }}>
+        {wakeSeconds > 3
+          ? `Waking up the backend (free-tier hosting sleeps after inactivity) — ${wakeSeconds}s elapsed`
+          : 'Loading trend data...'}
+      </p>
+    </div>
+  )
+
+  if (error) return (
+    <div style={{ display:'flex', flexDirection:'column',
+              alignItems:'center', gap:'14px', padding:'60px 0', textAlign:'center' }}>
+      <p style={{ color:'#ef4444', fontSize:'14px' }}>{error}</p>
+      <button onClick={loadTrends} style={{
+        background:'rgba(249,115,22,0.15)', border:'1px solid rgba(249,115,22,0.3)',
+        color:'#f97316', borderRadius:'8px', padding:'10px 20px',
+        fontSize:'13px', cursor:'pointer',
+      }}>
+        Retry
+      </button>
+    </div>
   )
 
   const compareData = YEARS.map((yr, i) => ({
@@ -91,6 +140,28 @@ export default function TrendsPanel() {
     [zoneA]: data[i]?.[zoneA] || 0,
     [zoneB]: data[i]?.[zoneB] || 0,
   }))
+
+  // Derive COVID summary stats from the same live data the chart uses,
+  // instead of hardcoding them — so this card can't silently drift out
+  // of sync if the underlying data ever changes.
+  const totalsByYear = YEARS.map(yr => {
+    const row = data.find(d => d.year === yr)
+    return row ? zones.reduce((sum, z) => sum + (row[z] || 0), 0) : 0
+  })
+  const peakYearIdx = totalsByYear.indexOf(Math.max(...totalsByYear))
+  const peakYear = YEARS[peakYearIdx]
+  const covidYears = [2020, 2021].filter(y => YEARS.includes(y))
+  const lowestCovidYear = covidYears.reduce((a, b) => {
+    const totalA = totalsByYear[YEARS.indexOf(a)]
+    const totalB = totalsByYear[YEARS.indexOf(b)]
+    return totalB < totalA ? b : a
+  }, covidYears[0])
+  const postCovidYears = YEARS.filter(y => y > 2021)
+  const recoveryYear = postCovidYears.reduce((best, yr) => {
+    const idx = YEARS.indexOf(yr)
+    const bestIdx = YEARS.indexOf(best)
+    return totalsByYear[idx] > totalsByYear[bestIdx] ? yr : best
+  }, postCovidYears[0] || 2023)
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:'20px' }}>
@@ -160,9 +231,9 @@ export default function TrendsPanel() {
             </p>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'12px' }}>
               {[
-                { label:'Peak Year',   value:'2019',    sub:'Before COVID' },
-                { label:'Lowest',      value:'2020–21', sub:'COVID dip'    },
-                { label:'Recovery',    value:'2023–24', sub:'Post-lockdown surge' },
+                { label:'Peak Year',   value:String(peakYear),        sub:'Highest total' },
+                { label:'Lowest',      value:String(lowestCovidYear), sub:'COVID dip'      },
+                { label:'Recovery',    value:String(recoveryYear),    sub:'Post-lockdown peak' },
               ].map(item => (
                 <div key={item.label} style={{
                   background:'rgba(249,115,22,0.08)',
@@ -190,11 +261,11 @@ export default function TrendsPanel() {
         </h3>
         <div style={{ display:'flex', gap:'12px', marginBottom:'20px' }}>
           <select value={zoneA} onChange={e => setZoneA(e.target.value)} style={inp}>
-            {zones.map(z => <option key={z} value={z}>{z}</option>)}
+            {zones.map(z => <option key={z} value={z} disabled={z === zoneB}>{z}</option>)}
           </select>
-          <div style={{ display:'flex', alignItems:'center', color:'#444', fontSize:'13px' }}>vs</div>
+          <div style={{ display: 'flex', alignItems: 'center', color: '#444', fontSize: '13px' }}>vs</div>
           <select value={zoneB} onChange={e => setZoneB(e.target.value)} style={inp}>
-            {zones.map(z => <option key={z} value={z}>{z}</option>)}
+            {zones.map(z => <option key={z} value={z} disabled={z === zoneA}>{z}</option>)}
           </select>
         </div>
         <ResponsiveContainer width="100%" height={240}>
