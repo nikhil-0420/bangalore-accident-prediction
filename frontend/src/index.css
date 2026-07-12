@@ -38,6 +38,11 @@ body {
   50%       { opacity: 1; }
 }
 
+/* ── Loading spinner (backend cold-start) ────── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ── Rotating border ───────────────────────── */
 @keyframes border-rotate {
   to { --border-angle: 360deg; }

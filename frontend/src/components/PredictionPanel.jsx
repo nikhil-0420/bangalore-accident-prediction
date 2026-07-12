@@ -69,6 +69,8 @@ export default function PredictionPanel() {
   const [error,      setError]      = useState(null)
   const [history,    setHistory]    = useState([])
   const [computeMsg, setComputeMsg] = useState('')
+  const [wakingBackend, setWakingBackend] = useState(true)
+  const [wakeSeconds,   setWakeSeconds]   = useState(0)
 
   const msgs = [
     'Loading station data...',
@@ -79,9 +81,41 @@ export default function PredictionPanel() {
   ]
 
   useEffect(() => {
-    axios.get(`${API}/stations`)
-      .then(r => { setStations(r.data.stations); setStation(r.data.stations[0]) })
-      .catch(() => setError('Cannot connect to backend.'))
+    let cancelled = false
+    let attempt = 0
+    setWakingBackend(true)
+    setWakeSeconds(0)
+
+    const tick = setInterval(() => {
+      if (!cancelled) setWakeSeconds(s => s + 1)
+    }, 1000)
+
+    const tryFetch = () => {
+      attempt += 1
+      axios.get(`${API}/stations`, { timeout: 12000 })
+        .then(r => {
+          if (cancelled) return
+          setStations(r.data.stations)
+          setStation(r.data.stations[0])
+          setWakingBackend(false)
+          setError(null)
+        })
+        .catch(() => {
+          if (cancelled) return
+          // Render free-tier can take 20-30s to wake from sleep — retry a
+          // few times before showing a hard error, instead of failing
+          // instantly on the first cold-start timeout.
+          if (attempt < 6) {
+            setTimeout(tryFetch, 5000)
+          } else {
+            setWakingBackend(false)
+            setError('Cannot connect to backend. It may still be waking up — try again in a moment.')
+          }
+        })
+    }
+    tryFetch()
+
+    return () => { cancelled = true; clearInterval(tick) }
   }, [])
 
   useEffect(() => {
@@ -122,7 +156,27 @@ export default function PredictionPanel() {
   }
 
   return (
-    <div style={{ display:'flex', gap:'28px', alignItems:'flex-start' }}>
+    <div style={{ display:'flex', gap:'28px', alignItems:'flex-start', flexDirection:'column', width:'100%' }}>
+
+      {wakingBackend && (
+        <div style={{
+          width:'100%', padding:'14px 20px', borderRadius:'12px',
+          background:'rgba(249,115,22,0.08)', border:'1px solid rgba(249,115,22,0.25)',
+          display:'flex', alignItems:'center', gap:'12px', fontSize:'13px', color:'#f97316'
+        }}>
+          <div style={{
+            width:'14px', height:'14px', borderRadius:'50%',
+            border:'2px solid rgba(249,115,22,0.3)', borderTopColor:'#f97316',
+            animation:'spin 0.8s linear infinite'
+          }} />
+          <span>
+            Waking up the backend (free-tier hosting sleeps after inactivity) —
+            this can take 20–30 seconds{wakeSeconds > 0 ? ` · ${wakeSeconds}s elapsed` : ''}
+          </span>
+        </div>
+      )}
+
+      <div style={{ display:'flex', gap:'28px', alignItems:'flex-start', width:'100%' }}>
 
       {/* ── LEFT: Form ─────────────────────── */}
       <div style={{ flex:'0 0 360px' }}>
@@ -329,6 +383,7 @@ export default function PredictionPanel() {
 
           </div>
         )}
+      </div>
       </div>
     </div>
   )
